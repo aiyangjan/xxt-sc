@@ -23,6 +23,7 @@ class OrderApiIntegrationTest {
     @Test
     void createsOrderWithServerSidePriceThenCancelsIt() throws Exception {
         MvcResult created = mockMvc.perform(post("/api/v1/ma/orders")
+                        .header("X-Idempotency-Key", "order-create-flow-1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"items\":[{\"skuId\":10001,\"quantity\":2}]}"))
                 .andExpect(status().isOk())
@@ -46,8 +47,45 @@ class OrderApiIntegrationTest {
     }
 
     @Test
+    void retriesWithSameIdempotencyKeyReturnSameOrder() throws Exception {
+        String request = "{\"items\":[{\"skuId\":10002,\"quantity\":1}]}";
+        MvcResult first = mockMvc.perform(post("/api/v1/ma/orders")
+                        .header("X-Idempotency-Key", "order-retry-1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isOk())
+                .andReturn();
+        String firstOrderNo = com.jayway.jsonpath.JsonPath.read(
+                first.getResponse().getContentAsString(), "$.data.orderNo");
+
+        mockMvc.perform(post("/api/v1/ma/orders")
+                        .header("X-Idempotency-Key", "order-retry-1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.orderNo").value(firstOrderNo));
+    }
+
+    @Test
+    void rejectsDifferentRequestWithSameIdempotencyKey() throws Exception {
+        mockMvc.perform(post("/api/v1/ma/orders")
+                        .header("X-Idempotency-Key", "order-conflict-1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"items\":[{\"skuId\":10001,\"quantity\":1}]}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/ma/orders")
+                        .header("X-Idempotency-Key", "order-conflict-1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"items\":[{\"skuId\":10001,\"quantity\":2}]}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("40907"));
+    }
+
+    @Test
     void rejectsUnknownSku() throws Exception {
         mockMvc.perform(post("/api/v1/ma/orders")
+                        .header("X-Idempotency-Key", "order-unknown-sku-1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"items\":[{\"skuId\":99999,\"quantity\":1}]}"))
                 .andExpect(status().isOk())
@@ -57,6 +95,7 @@ class OrderApiIntegrationTest {
     @Test
     void rejectsInvalidQuantity() throws Exception {
         mockMvc.perform(post("/api/v1/ma/orders")
+                        .header("X-Idempotency-Key", "order-invalid-quantity-1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"items\":[{\"skuId\":10001,\"quantity\":0}]}"))
                 .andExpect(status().isBadRequest())
