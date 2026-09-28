@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 /** 学生端 P0 订单接口。 */
@@ -23,8 +24,10 @@ public class OrderController {
     }
 
     @PostMapping
-    public ApiResponse<OrderResponse> create(@Valid @RequestBody OrderCreateRequest request) {
-        return ApiResponse.ok(orderService.create(request)).traceId(TraceId.current());
+    public ApiResponse<OrderResponse> create(
+            @RequestHeader(value = "X-Idempotency-Key", required = false) String idempotencyKey,
+            @Valid @RequestBody OrderCreateRequest request) {
+        return ApiResponse.ok(orderService.create(idempotencyKey, request)).traceId(TraceId.current());
     }
 
     @GetMapping("/{orderNo}")
