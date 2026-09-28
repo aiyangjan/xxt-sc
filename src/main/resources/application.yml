@@ -1,0 +1,28 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: xxt-sc
+  jackson:
+    time-zone: Asia/Shanghai
+    date-format: yyyy-MM-dd HH:mm:ss
+    default-property-inclusion: non_null
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+xxt:
+  sc:
+    # ---------------------------------------------------------------
+    # 以下均为「临时占位值」，对应 PRD D-001 / D-005。
+    # 业务负责人签字确认前，不得当作正式业务规则使用。
+    # ---------------------------------------------------------------
+    order:
+      # 待支付关单时间（分钟）。临时沿用一期重构默认值，D-001 未确认。
+      unpaid-close-minutes: 30
+      # 楼长采购订单自动确认收货天数。仅为建议值，D-005 未确认。
+      auto-confirm-receive-days: 7

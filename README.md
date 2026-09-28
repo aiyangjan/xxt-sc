@@ -52,9 +52,37 @@
 
 所有改动通过 Pull Request 进入 `main`，保留完整评审记录。
 
+## 技术栈
+
+- **Java 8 + Spring Boot 2.7.x（2.7.18）+ Maven**（与本机 JDK 1.8 及一期 `xxt-boot` 对齐）
+- 接口统一前缀 `/api/v1`，统一响应结构（`code` / `message` / `traceId` / `retryable` / `data`）
+- 金额一律以「分」为单位的 `long` 存储与传输，禁止浮点数参与金额计算
+
+## 目录结构
+
+```
+src/main/java/com/xxt/sc/
+├── XxtScApplication.java     启动类
+├── common/
+│   ├── Amount.java           金额工具（元分转换、按比例分摊）
+│   ├── exception/BizException.java
+│   └── result/
+│       ├── ApiResponse.java  统一响应
+│       └── ErrorCode.java    错误码（含 retryable 标记）
+└── supplier/
+    ├── SupplierIdentityProvider.java  供应商身份来源（必须从登录身份推导）
+    └── SupplierScope.java             数据范围校验（对应 AC-102）
+```
+
 ## 本地开发
 
 ```bash
-npm install
-npm start
+mvn -q spring-boot:run
+# 或打包后运行
+mvn clean package && java -jar target/xxt-sc-0.1.0-SNAPSHOT.jar
 ```
+
+服务默认端口 `8081`，健康检查：`http://localhost:8081/actuator/health`
+
+> `application.yml` 中的 `xxt.sc.order.*` 为**临时占位值**（对应 PRD D-001 / D-005），
+> 业务负责人签字确认前不得当作正式业务规则。
