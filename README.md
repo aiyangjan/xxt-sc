@@ -57,7 +57,7 @@
 
 ## 技术栈
 
-- **Java 8 + Spring Boot 2.7.x（2.7.18）+ Maven**（与本机 JDK 1.8 及一期 `xxt-boot` 对齐）
+- **Java 17 + Spring Boot 3.2.5 + Maven**（V2 统一技术基线）
 - 接口统一前缀 `/api/v1`，统一响应结构（`code` / `message` / `traceId` / `retryable` / `data`）
 - 金额一律以「分」为单位的 `long` 存储与传输，禁止浮点数参与金额计算
 
