@@ -6,6 +6,7 @@
 - 工程代号：`xxt-campus-platform`
 - 本仓库：供应链（Supply Chain）相关模块
 - 需求基线：[docs/PRD.md](./docs/PRD.md)
+- 实现方案：[docs/后台管理系统技术方案.md](./docs/后台管理系统技术方案.md)
 - 开发约定：[AGENTS.md](./AGENTS.md)（**提交前必读**）
 - 技术补充规范：[docs/技术规范补充.md](./docs/技术规范补充.md)
 
