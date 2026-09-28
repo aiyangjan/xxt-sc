@@ -122,11 +122,7 @@ public class OrderApplicationService {
     private String generateOrderNo() {
         return "XO" + UUID.randomUUID().toString().replace("-", "").substring(0, 20);
     }
-
-    private int veinte() {
-        return 20;
-    }
-
+`n
     private static final class StoredOrder {
         private final String orderNo;
         private final OrderAmount amount;
