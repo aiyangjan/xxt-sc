@@ -52,12 +52,23 @@ mvn -B spring-boot:run   # 本地启动（端口 8081）
 ```
 src/main/java/com/xxt/sc/
 ├── common/      通用能力（result / exception / trace / web），只放跨领域复用代码
+├── order/       交易领域（OrderStatus / OrderPricing / RefundLimit）
+├── finance/     财务领域（SettlementRule / SettlementCalculator）
+├── decorate/    装修领域（组件白名单 / 配置校验 / 富文本清洗）
 └── supplier/    供应链域
 ```
 
 - 新增业务能力**按领域建包**，不要都塞进 `common`。
 - Controller 保持薄：只做参数接收与结果封装，业务判断放应用/领域层。
 - 构造器注入优先，禁止字段注入 `@Autowired`。
+
+### 已实现的领域层（纯逻辑、不依赖 ORM、带完整单元测试）
+
+| 包 | 能力 | 关键不变量 |
+|---|---|---|
+| `order` | 状态机、服务端计价、优惠分摊、退款上限 | 各行实付之和 == 应付总额 |
+| `finance` | 分润规则、清分、退款冲正 | 平台+楼长+供应商+手续费 == 实付 |
+| `decorate` | 组件白名单、配置校验、XSS 清洗 | 未知组件与脚本一律拒绝 |
 
 ## 5. 异常与响应
 
