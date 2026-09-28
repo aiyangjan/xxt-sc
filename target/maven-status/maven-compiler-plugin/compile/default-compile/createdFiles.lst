@@ -1,0 +1,10 @@
+com\xxt\sc\common\exception\BizException.class
+com\xxt\sc\common\web\TraceIdFilter.class
+com\xxt\sc\supplier\SupplierScope.class
+com\xxt\sc\supplier\SupplierIdentityProvider.class
+com\xxt\sc\XxtScApplication.class
+com\xxt\sc\common\trace\TraceId.class
+com\xxt\sc\common\result\ErrorCode.class
+com\xxt\sc\common\Amount.class
+com\xxt\sc\common\result\ApiResponse.class
+com\xxt\sc\common\web\GlobalExceptionHandler.class
