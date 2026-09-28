@@ -20,6 +20,8 @@ public enum ErrorCode {
     INSUFFICIENT_STOCK("40902", "库存不足，不可创建可支付订单", false),
     PRICE_EXPIRED("40903", "价格已过期，请重新下单", false),
     ORDER_NOT_PAYABLE("40904", "订单当前状态不可支付", false),
+    ORDER_NOT_FOUND("40401", "订单不存在或无权查看", false),
+    ORDER_NOT_CANCELABLE("40908", "订单当前状态不可取消", false),
     REFUND_EXCEED_LIMIT("40905", "退款数量或金额超出可退上限", false),
     REFUND_DUPLICATE("40906", "同一订单行存在处理中的重复退款", false),
     IDEMPOTENT_CONFLICT("40907", "幂等键冲突，请求正在处理或已处理", false),
