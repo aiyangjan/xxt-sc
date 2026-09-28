@@ -15,9 +15,9 @@
 
 | 项 | 版本 |
 |---|---|
-| JDK | **1.8** |
+| JDK | **17** |
 | Maven | 3.9+（直接使用，仓库无 wrapper，不要臆造 `mvnw` 命令） |
-| Spring Boot | **2.7.18** |
+| Spring Boot | **3.2.5** |
 
 常用命令：
 
@@ -30,7 +30,7 @@ mvn -B spring-boot:run   # 本地启动（端口 8081）
 ## 3. 硬性约束（违反一律打回）
 
 ### 语言
-- **Java 8 语法**。禁止 `var`、`List.of`、`Map.of`、`String.isBlank`、文本块、Records。
+- **Java 17 语法**。允许使用 Java 17 LTS 语言特性，不启用预览特性。
 - 金额一律 `long`（单位：**分**）。禁止 `double` / `float` 参与金额计算，禁止用 `BigDecimal` 做无谓转换。
 - 时间明确时区 **Asia/Shanghai**，统一 `yyyy-MM-dd HH:mm:ss` 序列化。
 
@@ -95,11 +95,11 @@ src/main/java/com/xxt/sc/
 - **PR #1 未合并**：远端 `main` 目前只有 README.md，代码全在 `feat/init`。
 - **本地 git 历史与远端已分叉**（曾因网络问题改用 GitHub API 提交）。PR 合并后需 `git reset --hard origin/main` 对齐，不要直接 `git pull`。
 - **ORM 选型未定**（MyBatis-Plus / JPA）——未定前不写数据访问层。
-- **是否升级 Java 17 未定**——未定前不得擅自升级 Spring Boot 大版本。
+- **Java 17 + Spring Boot 3.2.5 已确定**；升级 JDK 或 Spring Boot 大版本必须经过变更评审。
 
 ## 9. 禁止事项
 
-- 不为「更现代」擅自升级 JDK、Spring Boot、依赖大版本。
+- 当前基线固定为 Java 17 + Spring Boot 3.2.5；升级 JDK 或 Spring Boot 大版本必须经过变更评审。
 - 不为套设计模式引入无必要的接口、工厂、事件层。
 - 不在未确认业务语义时更改公开 API、字段含义或错误码。
 - 不伪造测试结果：没跑过的测试不得称为通过。
