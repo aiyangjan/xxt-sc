@@ -32,8 +32,14 @@ public final class Amount {
 
     /** 按比例分摊（优惠/手续费分摊到订单行），余数摊到最后一以保证总额一致。 */
     public static long[] allocate(long totalFen, int[] weights) {
+        if (weights == null || weights.length == 0) {
+            throw new IllegalArgumentException("分摊权重不能为空");
+        }
         long sum = 0;
         for (int w : weights) {
+            if (w < 0) {
+                throw new IllegalArgumentException("分摊权重不能为负: " + w);
+            }
             sum += w;
         }
         if (sum == 0) {
@@ -42,7 +48,8 @@ public final class Amount {
         long[] result = new long[weights.length];
         long allocated = 0;
         for (int i = 0; i < weights.length - 1; i++) {
-            long v = totalFen * weights[i] / sum;
+            // 溢出时快速失败，而不是静默产生错误的分摊结果
+            long v = Math.multiplyExact(totalFen, (long) weights[i]) / sum;
             result[i] = v;
             allocated += v;
         }

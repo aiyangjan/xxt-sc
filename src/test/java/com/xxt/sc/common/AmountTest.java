@@ -67,6 +67,16 @@ class AmountTest {
     }
 
     @Test
+    void 权重为空或含负数时抛异常() {
+        assertThrows(IllegalArgumentException.class,
+                () -> Amount.allocate(100L, null));
+        assertThrows(IllegalArgumentException.class,
+                () -> Amount.allocate(100L, new int[]{}));
+        assertThrows(IllegalArgumentException.class,
+                () -> Amount.allocate(100L, new int[]{1, -2}));
+    }
+
+    @Test
     void 金额为空时抛异常() {
         assertThrows(IllegalArgumentException.class, () -> Amount.yuanToFen(null));
         assertThrows(IllegalArgumentException.class, () -> Amount.yuanToFen("  "));

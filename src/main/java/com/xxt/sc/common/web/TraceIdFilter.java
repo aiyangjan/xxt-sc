@@ -23,10 +23,11 @@ public class TraceIdFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain chain) throws ServletException, IOException {
-        String incoming = request.getHeader(TraceId.HEADER);
-        String traceId = (incoming == null || incoming.isEmpty())
-                ? TraceId.generate()
-                : incoming;
+        // 请求头不可信：只接受经过清洗的值，否则重新生成，避免日志注入与超长字段
+        String traceId = TraceId.sanitize(request.getHeader(TraceId.HEADER));
+        if (traceId == null) {
+            traceId = TraceId.generate();
+        }
         TraceId.set(traceId);
         try {
             response.setHeader(TraceId.HEADER, traceId);
