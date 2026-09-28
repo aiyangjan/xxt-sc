@@ -16,22 +16,52 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-/**
- * P0 订单用例服务。
- *
- * <p>当前使用内存仓储建立 API 与领域边界。P1 接入数据库仓储时，订单计价和状态规则不变。
- */
+/** P0 订单用例服务。P1 接入数据库仓储时，订单计价和状态规则不变。 */
 @Service
 public class OrderApplicationService {
 
     private final SkuPriceProvider priceProvider;
     private final ConcurrentMap<String, StoredOrder> orders = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, IdempotencyRecord> idempotencyRecords = new ConcurrentHashMap<>();
 
     public OrderApplicationService(SkuPriceProvider priceProvider) {
         this.priceProvider = priceProvider;
     }
 
-    public OrderResponse create(OrderCreateRequest request) {
+    /** 创建订单。幂等键必须由调用方生成并在重试时保持不变。 */
+    public OrderResponse create(String idempotencyKey, OrderCreateRequest request) {
+        String key = normalizeIdempotencyKey(idempotencyKey);
+        String requestFingerprint = fingerprint(request);
+        IdempotencyRecord record = idempotencyRecords.compute(key, (ignored, existing) -> {
+            if (existing != null) {
+                if (!existing.fingerprint.equals(requestFingerprint)) {
+                    throw new BizException(ErrorCode.IDEMPOTENT_CONFLICT,
+                            "幂等键已用于其他订单请求");
+                }
+                return existing;
+            }
+            return new IdempotencyRecord(requestFingerprint, createInternal(request));
+        });
+        return record.response;
+    }
+
+    public OrderResponse get(String orderNo) {
+        return toResponse(getStored(orderNo));
+    }
+
+    public OrderResponse cancel(String orderNo) {
+        StoredOrder stored = getStored(orderNo);
+        synchronized (stored) {
+            if (!OrderStatus.canTransit(stored.status, OrderStatus.CANCELLED)) {
+                throw new BizException(ErrorCode.ORDER_NOT_CANCELABLE,
+                        "订单当前状态为「" + stored.status.getLabel() + "」，不可取消");
+            }
+            stored.status = OrderStatus.CANCELLED;
+            return toResponse(stored);
+        }
+    }
+
+    private OrderResponse createInternal(OrderCreateRequest request) {
         if (request == null || request.getItems() == null || request.getItems().isEmpty()) {
             throw new BizException(ErrorCode.PARAM_ERROR, "订单商品不能为空");
         }
@@ -66,12 +96,14 @@ public class OrderApplicationService {
 
         OrderAmount amount = OrderPricing.calculate(subtotals, 0L, 0L);
         List<OrderItemSnapshot> pricedSnapshots = new ArrayList<>(snapshots.size());
+        long[] activityCuts = amount.getItemActivityCut();
+        long[] couponCuts = amount.getItemCouponCut();
         long[] payable = amount.getItemPayable();
         for (int i = 0; i < snapshots.size(); i++) {
             OrderItemSnapshot source = snapshots.get(i);
             pricedSnapshots.add(new OrderItemSnapshot(source.getSkuId(), source.getQuantity(),
-                    source.getUnitPriceFen(), source.getSubtotalFen(),
-                    amount.getItemActivityCut()[i], amount.getItemCouponCut()[i], payable[i], 0L));
+                    source.getUnitPriceFen(), source.getSubtotalFen(), activityCuts[i], couponCuts[i],
+                    payable[i], 0L));
         }
 
         String orderNo = generateOrderNo();
@@ -80,20 +112,30 @@ public class OrderApplicationService {
         return toResponse(stored);
     }
 
-    public OrderResponse get(String orderNo) {
-        return toResponse(getStored(orderNo));
+    private String normalizeIdempotencyKey(String idempotencyKey) {
+        if (idempotencyKey == null || idempotencyKey.isBlank()) {
+            throw new BizException(ErrorCode.PARAM_ERROR, "请求头 X-Idempotency-Key 不能为空");
+        }
+        String normalized = idempotencyKey.trim();
+        if (normalized.length() > 128) {
+            throw new BizException(ErrorCode.PARAM_ERROR, "幂等键长度不能超过 128 个字符");
+        }
+        return normalized;
     }
 
-    public OrderResponse cancel(String orderNo) {
-        StoredOrder stored = getStored(orderNo);
-        synchronized (stored) {
-            if (!OrderStatus.canTransit(stored.status, OrderStatus.CANCELLED)) {
-                throw new BizException(ErrorCode.ORDER_NOT_CANCELABLE,
-                        "订单当前状态为「" + stored.status.getLabel() + "」，不可取消");
-            }
-            stored.status = OrderStatus.CANCELLED;
-            return toResponse(stored);
+    private String fingerprint(OrderCreateRequest request) {
+        if (request == null || request.getItems() == null) {
+            return "null";
         }
+        StringBuilder result = new StringBuilder();
+        for (OrderCreateRequest.Item item : request.getItems()) {
+            if (item == null) {
+                result.append("null;");
+            } else {
+                result.append(item.getSkuId()).append(':').append(item.getQuantity()).append(';');
+            }
+        }
+        return result.toString();
     }
 
     private StoredOrder getStored(String orderNo) {
@@ -121,6 +163,16 @@ public class OrderApplicationService {
 
     private String generateOrderNo() {
         return "XO" + UUID.randomUUID().toString().replace("-", "").substring(0, 20);
+    }
+
+    private static final class IdempotencyRecord {
+        private final String fingerprint;
+        private final OrderResponse response;
+
+        private IdempotencyRecord(String fingerprint, OrderResponse response) {
+            this.fingerprint = fingerprint;
+            this.response = response;
+        }
     }
 
     private static final class StoredOrder {
